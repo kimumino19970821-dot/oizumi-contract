@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大泉衛生 契約書管理システム</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>大泉衛生 契約書管理システム</h1>
+        <nav>
+            <button id="btn-new" class="nav-btn active">新規入力</button>
+            <button id="btn-list" class="nav-btn">契約一覧</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- 入力フォーム画面 -->
+        <section id="form-section">
+            <form id="contract-form">
+                <!-- 基本情報 -->
+                <fieldset>
+                    <legend>基本情報</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tokuisakiNo">得意先No.</label>
+                            <input type="text" id="tokuisakiNo" name="tokuisakiNo">
+                        </div>
+                        <div class="form-group">
+                            <label for="genbaNo">現場No.</label>
+                            <input type="text" id="genbaNo" name="genbaNo">
+                        </div>
+                        <div class="form-group">
+                            <label for="keiyakuTanto">契約担当名</label>
+                            <input type="text" id="keiyakuTanto" name="keiyakuTanto">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group category-select">
+                            <label for="category">区分</label>
+                            <select id="category" name="category">
+                                <option value="新規">新規</option>
+                                <option value="地盤">地盤</option>
+                                <option value="ｵｰﾅｰ変更">ｵｰﾅｰ変更</option>
+                                <option value="社名変更">社名変更</option>
+                                <option value="書換">書換</option>
+                                <option value="値上">値上</option>
+                                <option value="値下">値下</option>
+                                <option value="その他">その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="category-other-group" style="display:none;">
+                            <label for="categoryOther">その他内容</label>
+                            <input type="text" id="categoryOther" name="categoryOther">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 現場情報 -->
+                <fieldset>
+                    <legend>現場情報</legend>
+                    <div class="form-row">
+                        <div class="form-group wide">
+                            <label for="genbaName">現場名</label>
+                            <input type="text" id="genbaName" name="genbaName" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group wide">
+                            <label for="genbaAddress">現場住所</label>
+                            <input type="text" id="genbaAddress" name="genbaAddress">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="genbaBldg">ﾋﾞﾙ・ﾏﾝｼｮﾝ名</label>
+                            <input type="text" id="genbaBldg" name="genbaBldg">
+                        </div>
+                        <div class="form-group">
+                            <label for="genbaTel">TEL</label>
+                            <input type="tel" id="genbaTel" name="genbaTel">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 請求先情報 -->
+                <fieldset>
+                    <legend>請求先情報</legend>
+                    <div class="form-row">
+                        <label class="checkbox-label dojou-check">
+                            <input type="checkbox" id="seikyuDojou"> 現場と同じ（同上）
+                        </label>
+                    </div>
+                    <div id="seikyu-fields">
+                        <div class="form-row">
+                            <div class="form-group wide">
+                                <label for="seikyuName">請求先名</label>
+                                <input type="text" id="seikyuName" name="seikyuName">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group wide">
+                                <label for="seikyuAddress">請求先住所</label>
+                                <input type="text" id="seikyuAddress" name="seikyuAddress">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="seikyuBldg">ﾋﾞﾙ・ﾏﾝｼｮﾝ名</label>
+                                <input type="text" id="seikyuBldg" name="seikyuBldg">
+                            </div>
+                            <div class="form-group">
+                                <label for="seikyuTel">TEL</label>
+                                <input type="tel" id="seikyuTel" name="seikyuTel">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="aiteTanto">相手担当者</label>
+                            <input type="text" id="aiteTanto" name="aiteTanto">
+                        </div>
+                        <div class="form-group">
+                            <label for="yakushoku">役職等</label>
+                            <select id="yakushoku" name="yakushoku">
+                                <option value="">選択してください</option>
+                                <option value="ｵｰﾅｰ">ｵｰﾅｰ</option>
+                                <option value="店長">店長</option>
+                                <option value="その他">その他</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="gyoushuNo">業種別番号</label>
+                            <input type="text" id="gyoushuNo" name="gyoushuNo">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 契約内容 -->
+                <fieldset>
+                    <legend>契約内容</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="keiyakuGaku">契約額</label>
+                            <input type="number" id="keiyakuGaku" name="keiyakuGaku">
+                        </div>
+                        <div class="form-group">
+                            <label for="taxType">税区分</label>
+                            <select id="taxType" name="taxType">
+                                <option value="税抜">税抜</option>
+                                <option value="税込">税込</option>
+                            </select>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 支払方法 -->
+                <fieldset>
+                    <legend>支払方法</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shimebiType">〆日</label>
+                            <select id="shimebiType" name="shimebiType">
+                                <option value="末">末日</option>
+                                <option value="日付指定">日付指定</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="shimebi-date-group" style="display:none;">
+                            <label for="shimebiDate">〆日（日付）</label>
+                            <input type="number" id="shimebiDate" name="shimebiDate" min="1" max="31" placeholder="例: 20">
+                        </div>
+                        <div class="form-group">
+                            <label for="shiharaiTsuki">支払月</label>
+                            <select id="shiharaiTsuki" name="shiharaiTsuki">
+                                <option value="当月">当月</option>
+                                <option value="翌月">翌月</option>
+                                <option value="翌々月">翌々月</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="shiharaiBiType">支払日</label>
+                            <select id="shiharaiBiType" name="shiharaiBiType">
+                                <option value="末">末日</option>
+                                <option value="日付指定">日付指定</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="shiharaibi-date-group" style="display:none;">
+                            <label for="shiharaiBiDate">支払日（日付）</label>
+                            <input type="number" id="shiharaiBiDate" name="shiharaiBiDate" min="1" max="31" placeholder="例: 25">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shiharaiMethod">支払方法</label>
+                            <select id="shiharaiMethod" name="shiharaiMethod">
+                                <option value="振込">振込</option>
+                                <option value="自動引落">自動引落</option>
+                                <option value="集金">集金</option>
+                            </select>
+                        </div>
+                    </div>
+                    <!-- 振込 -->
+                    <div id="furikomi-detail" class="sub-detail">
+                        <div class="form-row">
+                            <div class="form-group wide">
+                                <label for="furikomiName">振込人名</label>
+                                <input type="text" id="furikomiName" name="furikomiName">
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 自動引落 -->
+                    <div id="jidou-detail" class="sub-detail" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="moushikomiYoushi">申込用紙</label>
+                                <select id="moushikomiYoushi" name="moushikomiYoushi">
+                                    <option value="渡し済">渡し済</option>
+                                    <option value="郵送">郵送</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="kaishiMade">開始するまで</label>
+                                <select id="kaishiMade" name="kaishiMade">
+                                    <option value="振込">振込</option>
+                                    <option value="集金">集金</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- 集金 -->
+                    <div id="shuukin-detail" class="sub-detail" style="display:none;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="teikyubi">定休日</label>
+                                <input type="text" id="teikyubi" name="teikyubi">
+                            </div>
+                            <div class="form-group">
+                                <label for="shuukinJikan">集金可能時間帯</label>
+                                <input type="text" id="shuukinJikan" name="shuukinJikan">
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 収集・入金 -->
+                <fieldset>
+                    <legend>収集・入金</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="shokaiShushuubi">初回収集日</label>
+                            <input type="date" id="shokaiShushuubi" name="shokaiShushuubi">
+                        </div>
+                        <div class="form-group">
+                            <label for="shokaiNyuukinbi">初回入金日</label>
+                            <input type="date" id="shokaiNyuukinbi" name="shokaiNyuukinbi">
+                        </div>
+                        <div class="form-group">
+                            <label for="shokaiNyuukinTsuki">初回入金月分</label>
+                            <input type="text" id="shokaiNyuukinTsuki" name="shokaiNyuukinTsuki" placeholder="例: 4月分">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="kurumaBan">車番</label>
+                            <input type="text" id="kurumaBan" name="kurumaBan">
+                        </div>
+                        <div class="form-group">
+                            <label for="muryouKikan">無料ｻｰﾋﾞｽ期間</label>
+                            <input type="text" id="muryouKikan" name="muryouKikan">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- サービス・回収 -->
+                <fieldset>
+                    <legend>サービス・回収</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nichiyouKaishu">日曜回収</label>
+                            <select id="nichiyouKaishu" name="nichiyouKaishu">
+                                <option value="無">無</option>
+                                <option value="有">有</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="nenshi">年始回収</label>
+                            <select id="nenshi" name="nenshi">
+                                <option value="無">無</option>
+                                <option value="有">有</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="baketsu">バケツ</label>
+                            <select id="baketsu" name="baketsu">
+                                <option value="無">無</option>
+                                <option value="有">有</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nenmatsuKasan">年末加算</label>
+                            <select id="nenmatsuKasan" name="nenmatsuKasan">
+                                <option value="なし">なし</option>
+                                <option value="あり">あり</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="nenmatsu-amount-group" style="display:none;">
+                            <label for="nenmatsuAmount">12月加算額（円）</label>
+                            <input type="number" id="nenmatsuAmount" name="nenmatsuAmount">
+                        </div>
+                        <div class="form-group" id="nenshi-amount-group" style="display:none;">
+                            <label for="nenshiAmount">1月加算額（円）</label>
+                            <input type="number" id="nenshiAmount" name="nenshiAmount">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- ゴミの種類 -->
+                <fieldset>
+                    <legend>ゴミの種類</legend>
+                    <div class="form-row checkbox-row">
+                        <label class="checkbox-label"><input type="checkbox" name="gomiType" value="紙くず"> 紙くず</label>
+                        <label class="checkbox-label"><input type="checkbox" name="gomiType" value="木くず"> 木くず</label>
+                        <label class="checkbox-label"><input type="checkbox" name="gomiType" value="繊維くず"> 繊維くず</label>
+                        <label class="checkbox-label"><input type="checkbox" name="gomiType" value="動植物性残渣"> 動植物性残渣</label>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group wide">
+                            <label for="gomiOther">その他</label>
+                            <input type="text" id="gomiOther" name="gomiOther">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 担当者 -->
+                <fieldset>
+                    <legend>社内担当</legend>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="eigyou">営業</label>
+                            <input type="text" id="eigyou" name="eigyou">
+                        </div>
+                        <div class="form-group">
+                            <label for="kanri">管理</label>
+                            <input type="text" id="kanri" name="kanri">
+                        </div>
+                        <div class="form-group">
+                            <label for="jimu">事務</label>
+                            <input type="text" id="jimu" name="jimu">
+                        </div>
+                    </div>
+                </fieldset>
+
+                <!-- 備考 -->
+                <fieldset>
+                    <legend>備考</legend>
+                    <div class="form-row">
+                        <div class="form-group wide">
+                            <textarea id="bikou" name="bikou" rows="3"></textarea>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn-primary" id="btn-save">保存</button>
+                    <button type="button" class="btn-secondary" id="btn-clear">クリア</button>
+                    <button type="button" class="btn-accent" id="btn-print-form">この契約書をPDF出力</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- 一覧画面 -->
+        <section id="list-section" style="display:none;">
+            <div class="list-controls">
+                <input type="text" id="search-input" placeholder="検索（現場名・請求先名・得意先No.）">
+                <button class="btn-accent" id="btn-print-all">PDF出力（全件）</button>
+                <button class="btn-primary" id="btn-export">Excel出力</button>
+            </div>
+            <div class="table-wrapper">
+                <table id="contract-table">
+                    <thead>
+                        <tr>
+                            <th>得意先No.</th>
+                            <th>現場No.</th>
+                            <th>現場名</th>
+                            <th>請求先名</th>
+                            <th>契約額</th>
+                            <th>区分</th>
+                            <th>登録日</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
