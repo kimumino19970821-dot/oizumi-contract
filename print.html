@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>契約書メモ 印刷</title>
     <style>
         @page {
@@ -16,28 +17,23 @@
         }
 
         body {
-            font-family: 'MS Gothic', 'Meiryo', monospace;
+            font-family: 'Meiryo', 'MS Gothic', 'Yu Gothic', sans-serif;
             font-size: 9pt;
             color: #000;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .contract-form {
             width: 190mm;
-            height: 133mm; /* A4半分 */
-            border: 1.5pt solid #000;
+            height: 133mm;
+            border: 2px solid #000;
             page-break-inside: avoid;
             margin-bottom: 2mm;
             position: relative;
+            overflow: hidden;
         }
 
-        /* 2枚目以降の改ページ制御 */
-        .contract-form:nth-child(2n+1) {
-            /* 奇数番目: ページ上部 */
-        }
-        .contract-form:nth-child(2n) {
-            /* 偶数番目: ページ下部 */
-        }
-        /* 3つ目からは改ページ */
         .page-break {
             page-break-before: always;
         }
@@ -49,8 +45,8 @@
         }
 
         td {
-            border: 0.5pt solid #999;
-            padding: 1.5px 4px;
+            border: 1px solid #999;
+            padding: 2px 4px;
             vertical-align: middle;
             font-size: 8.5pt;
             line-height: 1.4;
@@ -59,20 +55,20 @@
         }
 
         .label {
-            background: #f5f5f5;
+            background-color: #f5f5f5;
             font-weight: bold;
             font-size: 8pt;
             white-space: nowrap;
         }
 
         .header-row td {
-            border-top: 1.5pt solid #000;
+            border-top: 2px solid #000;
             height: 6mm;
             font-size: 8pt;
         }
 
         .section-top td {
-            border-top: 1.5pt solid #000;
+            border-top: 2px solid #000;
         }
 
         .val {
@@ -87,14 +83,13 @@
         }
 
         .circle {
-            border: 1.2pt solid #c00;
+            border: 1px solid #c00;
             border-radius: 50%;
             padding: 0 3px;
             font-weight: bold;
             color: #c00;
         }
 
-        /* 列幅定義 (9列 = A~I) */
         col.c-a { width: 12.5%; }
         col.c-b { width: 11.8%; }
         col.c-c { width: 8.7%; }
@@ -105,19 +100,15 @@
         col.c-h { width: 10.3%; }
         col.c-i { width: 15.4%; }
 
-        .right-section td {
-            border-left: 0.5pt solid #999;
-        }
-
         .bottom-thick td {
-            border-bottom: 1.5pt solid #000;
+            border-bottom: 2px solid #000;
         }
 
         .no-border-bottom td {
             border-bottom: none;
         }
 
-        .担当欄 {
+        .tanto-cell {
             font-size: 8pt;
         }
 
@@ -135,15 +126,14 @@
 
         @media print {
             body { background: white; }
+            .print-controls { display: none !important; }
+            .label { background-color: #f5f5f5 !important; }
         }
 
         .print-controls {
             text-align: center;
             margin: 16px;
-        }
-
-        @media print {
-            .print-controls { display: none; }
+            font-family: 'Meiryo', sans-serif;
         }
 
         .print-controls button {
@@ -175,6 +165,13 @@
             cursor: pointer;
             font-size: 14px;
         }
+
+        .error-msg {
+            text-align: center;
+            padding: 40px;
+            font-size: 16px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -183,48 +180,55 @@
             <label><input type="radio" name="size" value="half" checked onchange="rerender()"> A4半分（2件/ページ）</label>
             <label><input type="radio" name="size" value="full" onchange="rerender()"> A4一枚（1件/ページ）</label>
         </div>
-        <button class="btn-print" onclick="window.print()">PDF出力 / 印刷</button>
+        <button class="btn-print" onclick="doPrint()">PDF出力 / 印刷</button>
         <button class="btn-back" onclick="window.close()">閉じる</button>
+        <p id="print-hint" style="margin-top:8px;font-size:12px;color:#888;display:none;">
+            ※ 印刷設定で「用紙サイズ: A4」「余白: なし or 最小」に設定してください
+        </p>
     </div>
     <div id="forms-container"></div>
 
     <script>
-        const STORAGE_KEY = 'oizumi_contracts';
+        var STORAGE_KEY = 'oizumi_contracts';
 
         function loadContracts() {
-            const data = localStorage.getItem(STORAGE_KEY);
-            return data ? JSON.parse(data) : [];
+            try {
+                var data = localStorage.getItem(STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                return [];
+            }
         }
 
-        // URLパラメータからID取得
-        const params = new URLSearchParams(window.location.search);
-        const ids = params.get('ids') ? params.get('ids').split(',') : null;
+        var params = new URLSearchParams(window.location.search);
+        var idParam = params.get('ids');
+        var ids = idParam ? idParam.split(',') : null;
 
         function getContracts() {
-            const all = loadContracts();
+            var all = loadContracts();
             if (ids) {
-                return all.filter(c => ids.includes(c.id));
+                return all.filter(function(c) { return ids.indexOf(c.id) !== -1; });
             }
             return all;
         }
 
         function esc(s) {
             if (!s) return '';
-            const d = document.createElement('div');
+            var d = document.createElement('div');
             d.textContent = s;
             return d.innerHTML;
         }
 
         function circleIf(val, option) {
             return val === option
-                ? `<span class="circle">${option}</span>`
+                ? '<span class="circle">' + option + '</span>'
                 : option;
         }
 
         function checkedGomi(types, type) {
             if (!types) return type;
-            return types.includes(type)
-                ? `<span class="circle">${type}</span>`
+            return types.indexOf(type) !== -1
+                ? '<span class="circle">' + type + '</span>'
                 : type;
         }
 
@@ -233,226 +237,242 @@
             return Number(val).toLocaleString();
         }
 
+        function doPrint() {
+            document.getElementById('print-hint').style.display = 'block';
+            setTimeout(function() {
+                window.print();
+            }, 300);
+        }
+
         function buildForm(c, isFull) {
-            const heightStyle = isFull ? 'height:277mm;' : 'height:133mm;';
-            const rowH = isFull ? 'height:14mm;' : 'height:7mm;';
-            const fontSize = isFull ? 'font-size:11pt;' : '';
-            const labelSize = isFull ? 'font-size:10pt;' : '';
-            const valSize = isFull ? 'font-size:12pt;' : '';
-            const smallSize = isFull ? 'font-size:9pt;' : '';
+            var heightStyle = isFull ? 'height:277mm;' : 'height:133mm;';
+            var fontSize = isFull ? 'font-size:11pt;' : '';
+            var labelSize = isFull ? 'font-size:10pt;' : '';
+            var valSize = isFull ? 'font-size:12pt;' : '';
+            var smallSize = isFull ? 'font-size:9pt;' : '';
 
             // 〆日・支払日の表示
-            const shimebiDisplay = c.shimebiType === '末' ? '<span class="circle">末</span>' : (c.shimebiDate ? c.shimebiDate + '日' : '　　');
-            const shiharaiBiDisplay = c.shiharaiBiType === '末' ? '<span class="circle">末</span>' : (c.shiharaiBiDate ? c.shiharaiBiDate : '　　');
+            var shimebiDisplay = '　　';
+            if (c.shimebiType === '末') {
+                shimebiDisplay = '<span class="circle">末</span>';
+            } else if (c.shimebiDate) {
+                shimebiDisplay = c.shimebiDate + '日';
+            }
+
+            var shiharaiBiDisplay = '　　';
+            if (c.shiharaiBiType === '末') {
+                shiharaiBiDisplay = '<span class="circle">末</span>';
+            } else if (c.shiharaiBiDate) {
+                shiharaiBiDisplay = c.shiharaiBiDate;
+            }
 
             // 請求先が同上の場合（TELは常に実際の値を表示）
-            const seikyuName = c.seikyuDojou ? '同上' : esc(c.seikyuName);
-            const seikyuAddress = c.seikyuDojou ? '〃' : esc(c.seikyuAddress);
-            const seikyuBldg = c.seikyuDojou ? '〃' : esc(c.seikyuBldg);
-            const seikyuTel = esc(c.seikyuTel);
+            var seikyuName = c.seikyuDojou ? '同上' : esc(c.seikyuName);
+            var seikyuAddress = c.seikyuDojou ? '〃' : esc(c.seikyuAddress);
+            var seikyuBldg = c.seikyuDojou ? '〃' : esc(c.seikyuBldg);
+            var seikyuTel = esc(c.seikyuTel);
 
             // 支払方法の詳細
-            let shiharaiDetail = '';
+            var shiharaiDetail = '';
             if (c.shiharaiMethod === '振込') {
-                shiharaiDetail = `振込（振込人名：${esc(c.furikomiName)}）`;
+                shiharaiDetail = '振込（振込人名：' + esc(c.furikomiName) + '）';
             } else if (c.shiharaiMethod === '自動引落') {
-                shiharaiDetail = `自動引落（申込用紙 ${circleIf(c.moushikomiYoushi, '渡し済')} ・ ${circleIf(c.moushikomiYoushi, '郵送')}）（開始するまで ${circleIf(c.kaishiMade, '振込')} ・ ${circleIf(c.kaishiMade, '集金')}）`;
+                shiharaiDetail = '自動引落（申込用紙 ' + circleIf(c.moushikomiYoushi, '渡し済') + ' ・ ' + circleIf(c.moushikomiYoushi, '郵送') + '）（開始するまで ' + circleIf(c.kaishiMade, '振込') + ' ・ ' + circleIf(c.kaishiMade, '集金') + '）';
             } else if (c.shiharaiMethod === '集金') {
-                shiharaiDetail = `集金（定休日：${esc(c.teikyubi)}　集金可能時間帯：${esc(c.shuukinJikan)}）`;
+                shiharaiDetail = '集金（定休日：' + esc(c.teikyubi) + '　集金可能時間帯：' + esc(c.shuukinJikan) + '）';
             }
 
             // 初回収集日フォーマット
-            let shushuuDate = '';
+            var shushuuDate = '';
             if (c.shokaiShushuubi) {
-                const d = new Date(c.shokaiShushuubi);
-                shushuuDate = `${d.getMonth()+1}月${d.getDate()}日`;
+                var d1 = new Date(c.shokaiShushuubi);
+                shushuuDate = (d1.getMonth()+1) + '月' + d1.getDate() + '日';
             }
-            let nyuukinDate = '';
+            var nyuukinDate = '';
             if (c.shokaiNyuukinbi) {
-                const d = new Date(c.shokaiNyuukinbi);
-                nyuukinDate = `${d.getMonth()+1}月${d.getDate()}日`;
+                var d2 = new Date(c.shokaiNyuukinbi);
+                nyuukinDate = (d2.getMonth()+1) + '月' + d2.getDate() + '日';
             }
 
-            // ゴミの種類
-            const gomi = c.gomiType || [];
+            var gomi = c.gomiType || [];
+            var nyuukinTsuki = c.shokaiNyuukinTsuki ? '（' + esc(c.shokaiNyuukinTsuki) + '）' : '';
+            var nenmatsuAmtStr = c.nenmatsuAmount ? '（12月 ' + formatAmount(c.nenmatsuAmount) + '円加算）' : '';
+            var nenshiAmtStr = c.nenshiAmount ? '（1月 ' + formatAmount(c.nenshiAmount) + '円加算）' : '';
+            var keiyakuAmtStr = c.keiyakuGaku ? formatAmount(c.keiyakuGaku) + '円' : '';
 
-            return `
-            <div class="contract-form" style="${heightStyle}${fontSize}">
-                <table>
-                    <colgroup>
-                        <col class="c-a"><col class="c-b"><col class="c-c"><col class="c-d">
-                        <col class="c-e"><col class="c-f"><col class="c-g"><col class="c-h"><col class="c-i">
-                    </colgroup>
+            var html = ''
+            + '<div class="contract-form" style="' + heightStyle + fontSize + '">'
+            + '<table>'
+            + '<colgroup>'
+            + '<col class="c-a"><col class="c-b"><col class="c-c"><col class="c-d">'
+            + '<col class="c-e"><col class="c-f"><col class="c-g"><col class="c-h"><col class="c-i">'
+            + '</colgroup>'
 
-                    <!-- Row 1: No.行 -->
-                    <tr class="header-row">
-                        <td colspan="3" style="border:none;border-top:1.5pt solid #000;"></td>
-                        <td class="label" style="${labelSize}">得意先No.</td>
-                        <td colspan="2" class="val" style="${valSize}">${esc(c.tokuisakiNo)}</td>
-                        <td class="label" style="${labelSize}">現場No.</td>
-                        <td colspan="2" class="val" style="${valSize}">${esc(c.genbaNo)}</td>
-                    </tr>
+            // Row 1: No.
+            + '<tr class="header-row">'
+            + '<td colspan="3" style="border-right:1px solid #999;border-left:none;border-bottom:1px solid #999;border-top:2px solid #000;"></td>'
+            + '<td class="label" style="' + labelSize + '">得意先No.</td>'
+            + '<td colspan="2" class="val" style="' + valSize + '">' + esc(c.tokuisakiNo) + '</td>'
+            + '<td class="label" style="' + labelSize + '">現場No.</td>'
+            + '<td colspan="2" class="val" style="' + valSize + '">' + esc(c.genbaNo) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 2: 現場名 -->
-                    <tr>
-                        <td class="label" style="${labelSize}">現場名</td>
-                        <td colspan="5" class="val" style="${valSize}">${esc(c.genbaName)}</td>
-                        <td class="label" style="${labelSize}">契約担当名</td>
-                        <td colspan="2" class="val" style="${valSize}">${esc(c.keiyakuTanto)}</td>
-                    </tr>
+            // Row 2: 現場名
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">現場名</td>'
+            + '<td colspan="5" class="val" style="' + valSize + '">' + esc(c.genbaName) + '</td>'
+            + '<td class="label" style="' + labelSize + '">契約担当名</td>'
+            + '<td colspan="2" class="val" style="' + valSize + '">' + esc(c.keiyakuTanto) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 3: 現場住所 -->
-                    <tr>
-                        <td class="label" style="${labelSize}">現場住所</td>
-                        <td colspan="8" class="val" style="${valSize}">${esc(c.genbaAddress)}</td>
-                    </tr>
+            // Row 3: 現場住所
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">現場住所</td>'
+            + '<td colspan="8" class="val" style="' + valSize + '">' + esc(c.genbaAddress) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 4: ﾋﾞﾙ名・TEL -->
-                    <tr>
-                        <td class="label" style="${labelSize}">ﾋﾞﾙ・ﾏﾝｼｮﾝ名</td>
-                        <td colspan="4" class="val" style="${valSize}">${esc(c.genbaBldg)}</td>
-                        <td class="label" style="${labelSize}">TEL</td>
-                        <td colspan="3" class="val" style="${valSize}">${esc(c.genbaTel)}</td>
-                    </tr>
+            // Row 4: ﾋﾞﾙ名・TEL
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">ﾋﾞﾙ・ﾏﾝｼｮﾝ名</td>'
+            + '<td colspan="4" class="val" style="' + valSize + '">' + esc(c.genbaBldg) + '</td>'
+            + '<td class="label" style="' + labelSize + '">TEL</td>'
+            + '<td colspan="3" class="val" style="' + valSize + '">' + esc(c.genbaTel) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 5: 請求先名・契約額 (太線上) -->
-                    <tr class="section-top">
-                        <td class="label" style="${labelSize}">請求先名</td>
-                        <td colspan="4" class="val" style="${valSize}">${seikyuName}</td>
-                        <td class="label" style="${labelSize}">契約額</td>
-                        <td colspan="3" class="val" style="${valSize}">${formatAmount(c.keiyakuGaku)}${c.keiyakuGaku ? '円' : ''}　<span class="small" style="${smallSize}">（ ${circleIf(c.taxType, '税抜')} ・ ${circleIf(c.taxType, '税込')} ）</span></td>
-                    </tr>
+            // Row 5: 請求先名・契約額
+            + '<tr class="section-top">'
+            + '<td class="label" style="' + labelSize + '">請求先名</td>'
+            + '<td colspan="4" class="val" style="' + valSize + '">' + seikyuName + '</td>'
+            + '<td class="label" style="' + labelSize + '">契約額</td>'
+            + '<td colspan="3" class="val" style="' + valSize + '">' + keiyakuAmtStr + '　<span class="small" style="' + smallSize + '">（ ' + circleIf(c.taxType, '税抜') + ' ・ ' + circleIf(c.taxType, '税込') + ' ）</span></td>'
+            + '</tr>'
 
-                    <!-- Row 6: 請求先住所 -->
-                    <tr>
-                        <td class="label" style="${labelSize}">請求先住所</td>
-                        <td colspan="8" class="val" style="${valSize}">${seikyuAddress}</td>
-                    </tr>
+            // Row 6: 請求先住所
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">請求先住所</td>'
+            + '<td colspan="8" class="val" style="' + valSize + '">' + seikyuAddress + '</td>'
+            + '</tr>'
 
-                    <!-- Row 7: ﾋﾞﾙ名・TEL -->
-                    <tr>
-                        <td class="label" style="${labelSize}">ﾋﾞﾙ・ﾏﾝｼｮﾝ名</td>
-                        <td colspan="4" class="val" style="${valSize}">${seikyuBldg}</td>
-                        <td class="label" style="${labelSize}">TEL</td>
-                        <td colspan="3" class="val" style="${valSize}">${seikyuTel}</td>
-                    </tr>
+            // Row 7: ﾋﾞﾙ名・TEL
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">ﾋﾞﾙ・ﾏﾝｼｮﾝ名</td>'
+            + '<td colspan="4" class="val" style="' + valSize + '">' + seikyuBldg + '</td>'
+            + '<td class="label" style="' + labelSize + '">TEL</td>'
+            + '<td colspan="3" class="val" style="' + valSize + '">' + seikyuTel + '</td>'
+            + '</tr>'
 
-                    <!-- Row 8: 相手担当者 -->
-                    <tr>
-                        <td class="label" style="${labelSize}">相手担当者</td>
-                        <td colspan="3" class="val" style="${valSize}">${esc(c.aiteTanto)}</td>
-                        <td class="label" style="${labelSize}">役職等</td>
-                        <td colspan="2" style="${fontSize}"><span class="small" style="${smallSize}">${circleIf(c.yakushoku, 'ｵｰﾅｰ')}・店長・</span></td>
-                        <td class="label" style="${labelSize}">業種別番号</td>
-                        <td class="val" style="${valSize}">${esc(c.gyoushuNo)}</td>
-                    </tr>
+            // Row 8: 相手担当者
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">相手担当者</td>'
+            + '<td colspan="3" class="val" style="' + valSize + '">' + esc(c.aiteTanto) + '</td>'
+            + '<td class="label" style="' + labelSize + '">役職等</td>'
+            + '<td colspan="2" style="' + fontSize + '"><span class="small" style="' + smallSize + '">' + circleIf(c.yakushoku, 'ｵｰﾅｰ') + '・店長・</span></td>'
+            + '<td class="label" style="' + labelSize + '">業種別番号</td>'
+            + '<td class="val" style="' + valSize + '">' + esc(c.gyoushuNo) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 9: 支払方法 〆日 -->
-                    <tr>
-                        <td class="label" rowspan="3" style="${labelSize}">支払方法</td>
-                        <td colspan="8" style="${fontSize}">〆日（ ${shimebiDisplay} ）/　${circleIf(c.shiharaiTsuki, '当月')} ・ ${circleIf(c.shiharaiTsuki, '翌月')} ・ ${circleIf(c.shiharaiTsuki, '翌々月')}　（ ${shiharaiBiDisplay} ）日払</td>
-                    </tr>
+            // Row 9: 支払方法 〆日
+            + '<tr>'
+            + '<td class="label" rowspan="3" style="' + labelSize + '">支払方法</td>'
+            + '<td colspan="8" style="' + fontSize + '">〆日（ ' + shimebiDisplay + ' ）/　' + circleIf(c.shiharaiTsuki, '当月') + ' ・ ' + circleIf(c.shiharaiTsuki, '翌月') + ' ・ ' + circleIf(c.shiharaiTsuki, '翌々月') + '　（ ' + shiharaiBiDisplay + ' ）日払</td>'
+            + '</tr>'
 
-                    <!-- Row 10: 振込・自動引落 -->
-                    <tr>
-                        <td colspan="8" style="font-size:7.5pt;${smallSize}">${shiharaiDetail || '振込（振込人名：　　　）/ 自動引落（申込用紙 渡し済 ・ 郵送）（開始するまで 振込 ・ 集金）'}</td>
-                    </tr>
+            // Row 10: 振込・自動引落
+            + '<tr>'
+            + '<td colspan="8" style="font-size:7.5pt;' + smallSize + '">' + (shiharaiDetail || '振込（振込人名：　　　）/ 自動引落（申込用紙 渡し済 ・ 郵送）（開始するまで 振込 ・ 集金）') + '</td>'
+            + '</tr>'
 
-                    <!-- Row 11: 集金 -->
-                    <tr>
-                        <td colspan="8" style="font-size:7.5pt;${smallSize}">${c.shiharaiMethod === '集金' ? shiharaiDetail : '集金（定休日：　　　　集金可能時間帯：　　　　）'}</td>
-                    </tr>
+            // Row 11: 集金
+            + '<tr>'
+            + '<td colspan="8" style="font-size:7.5pt;' + smallSize + '">' + (c.shiharaiMethod === '集金' ? shiharaiDetail : '集金（定休日：　　　　集金可能時間帯：　　　　）') + '</td>'
+            + '</tr>'
 
-                    <!-- Row 12: 初回収集日・入金日 -->
-                    <tr>
-                        <td class="label" style="${labelSize}">初回収集日</td>
-                        <td colspan="2" class="val" style="${valSize}">${shushuuDate}</td>
-                        <td class="label" style="${labelSize}">初回入金日</td>
-                        <td colspan="3" class="val" style="${valSize}">${nyuukinDate}${c.shokaiNyuukinTsuki ? '（' + esc(c.shokaiNyuukinTsuki) + '）' : ''}</td>
-                        <td class="label" style="${labelSize}">車番</td>
-                        <td class="val" style="${valSize}">${esc(c.kurumaBan)}</td>
-                    </tr>
+            // Row 12: 初回収集日・入金日
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">初回収集日</td>'
+            + '<td colspan="2" class="val" style="' + valSize + '">' + shushuuDate + '</td>'
+            + '<td class="label" style="' + labelSize + '">初回入金日</td>'
+            + '<td colspan="3" class="val" style="' + valSize + '">' + nyuukinDate + nyuukinTsuki + '</td>'
+            + '<td class="label" style="' + labelSize + '">車番</td>'
+            + '<td class="val" style="' + valSize + '">' + esc(c.kurumaBan) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 13: 無料ｻｰﾋﾞｽ期間 -->
-                    <tr class="section-top">
-                        <td class="label" colspan="5" style="${labelSize}">無料ｻｰﾋﾞｽ期間：<span class="val" style="${valSize}">${esc(c.muryouKikan)}</span></td>
-                        <td colspan="2" style="${fontSize}">日曜回収（ ${circleIf(c.nichiyouKaishu, '有')} ・ ${circleIf(c.nichiyouKaishu, '無')} ）</td>
-                        <td style="${labelSize}">バケツ</td>
-                        <td style="${fontSize}">${circleIf(c.baketsu, '無')} ・ ${circleIf(c.baketsu, '有')}</td>
-                    </tr>
+            // Row 13: 無料ｻｰﾋﾞｽ期間
+            + '<tr class="section-top">'
+            + '<td class="label" colspan="5" style="' + labelSize + '">無料ｻｰﾋﾞｽ期間：<span class="val" style="' + valSize + '">' + esc(c.muryouKikan) + '</span></td>'
+            + '<td colspan="2" style="' + fontSize + '">日曜回収（ ' + circleIf(c.nichiyouKaishu, '有') + ' ・ ' + circleIf(c.nichiyouKaishu, '無') + ' ）</td>'
+            + '<td class="tanto-cell" style="' + labelSize + '">バケツ</td>'
+            + '<td style="' + fontSize + '">' + circleIf(c.baketsu, '無') + ' ・ ' + circleIf(c.baketsu, '有') + '</td>'
+            + '</tr>'
 
-                    <!-- Row 14: 他サービス -->
-                    <tr>
-                        <td class="label" style="${labelSize}">他サービス</td>
-                        <td colspan="4" style="${fontSize}">年末加算${circleIf(c.nenmatsuKasan, 'なし')}・${circleIf(c.nenmatsuKasan, 'あり')}${c.nenmatsuAmount ? '（12月 ' + formatAmount(c.nenmatsuAmount) + '円加算）' : ''}</td>
-                        <td colspan="2" style="${fontSize}">年始回収（ ${circleIf(c.nenshi, '有')} ・ ${circleIf(c.nenshi, '無')} ）</td>
-                        <td colspan="2" style="${fontSize}">${c.nenshiAmount ? '（1月 ' + formatAmount(c.nenshiAmount) + '円加算）' : ''}</td>
-                    </tr>
+            // Row 14: 他サービス
+            + '<tr>'
+            + '<td class="label" style="' + labelSize + '">他サービス</td>'
+            + '<td colspan="4" style="' + fontSize + '">年末加算' + circleIf(c.nenmatsuKasan, 'なし') + '・' + circleIf(c.nenmatsuKasan, 'あり') + nenmatsuAmtStr + '</td>'
+            + '<td colspan="2" style="' + fontSize + '">年始回収（ ' + circleIf(c.nenshi, '有') + ' ・ ' + circleIf(c.nenshi, '無') + ' ）</td>'
+            + '<td colspan="2" style="' + fontSize + '">' + nenshiAmtStr + '</td>'
+            + '</tr>'
 
-                    <!-- Row 15: 区分 -->
-                    <tr>
-                        <td colspan="7" style="${fontSize}">
-                            ${circleIf(c.category, '新規')}・${circleIf(c.category, '地盤')}・${circleIf(c.category, 'ｵｰﾅｰ変更')}・${circleIf(c.category, '社名変更')}・${circleIf(c.category, '書換')}・${circleIf(c.category, '値上')}・${circleIf(c.category, '値下')}・その他（${esc(c.categoryOther)}）
-                        </td>
-                        <td class="label 担当欄" style="${labelSize}">営業</td>
-                        <td class="val" style="${valSize}">${esc(c.eigyou)}</td>
-                    </tr>
+            // Row 15: 区分
+            + '<tr>'
+            + '<td colspan="7" style="' + fontSize + '">'
+            + circleIf(c.category, '新規') + '・' + circleIf(c.category, '地盤') + '・' + circleIf(c.category, 'ｵｰﾅｰ変更') + '・' + circleIf(c.category, '社名変更') + '・' + circleIf(c.category, '書換') + '・' + circleIf(c.category, '値上') + '・' + circleIf(c.category, '値下') + '・その他（' + esc(c.categoryOther) + '）'
+            + '</td>'
+            + '<td class="label tanto-cell" style="' + labelSize + '">営業</td>'
+            + '<td class="val" style="' + valSize + '">' + esc(c.eigyou) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 16: ゴミの種類 -->
-                    <tr>
-                        <td style="${labelSize}">ゴミの種類：</td>
-                        <td colspan="6" style="${fontSize}">${checkedGomi(gomi, '紙くず')} ・ ${checkedGomi(gomi, '木くず')} ・ ${checkedGomi(gomi, '繊維くず')} ・ ${checkedGomi(gomi, '動植物性残渣')} ・その他（${esc(c.gomiOther)}）</td>
-                        <td class="label 担当欄" style="${labelSize}">管理</td>
-                        <td class="val" style="${valSize}">${esc(c.kanri)}</td>
-                    </tr>
+            // Row 16: ゴミの種類
+            + '<tr>'
+            + '<td style="' + labelSize + '">ゴミの種類：</td>'
+            + '<td colspan="6" style="' + fontSize + '">' + checkedGomi(gomi, '紙くず') + ' ・ ' + checkedGomi(gomi, '木くず') + ' ・ ' + checkedGomi(gomi, '繊維くず') + ' ・ ' + checkedGomi(gomi, '動植物性残渣') + ' ・その他（' + esc(c.gomiOther) + '）</td>'
+            + '<td class="label tanto-cell" style="' + labelSize + '">管理</td>'
+            + '<td class="val" style="' + valSize + '">' + esc(c.kanri) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 17: 備考・事務 -->
-                    <tr class="no-border-bottom">
-                        <td colspan="7" rowspan="2" style="vertical-align:top;${fontSize}"><span class="small" style="${smallSize}">備考：</span>${esc(c.bikou)}</td>
-                        <td class="label 担当欄" style="${labelSize}">事務</td>
-                        <td class="val" style="${valSize}">${esc(c.jimu)}</td>
-                    </tr>
+            // Row 17: 備考・事務
+            + '<tr class="no-border-bottom">'
+            + '<td colspan="7" rowspan="2" style="vertical-align:top;' + fontSize + '"><span class="small" style="' + smallSize + '">備考：</span>' + esc(c.bikou) + '</td>'
+            + '<td class="label tanto-cell" style="' + labelSize + '">事務</td>'
+            + '<td class="val" style="' + valSize + '">' + esc(c.jimu) + '</td>'
+            + '</tr>'
 
-                    <!-- Row 18: 空行 -->
-                    <tr class="bottom-thick">
-                        <td colspan="2" style="border-top:none;"></td>
-                    </tr>
-                </table>
-            </div>`;
+            // Row 18
+            + '<tr class="bottom-thick">'
+            + '<td colspan="2" style="border-top:none;"></td>'
+            + '</tr>'
+
+            + '</table>'
+            + '</div>';
+
+            return html;
         }
 
         function rerender() {
-            const isFull = document.querySelector('input[name="size"]:checked').value === 'full';
-            const contracts = getContracts();
-            const container = document.getElementById('forms-container');
+            try {
+                var isFull = document.querySelector('input[name="size"]:checked').value === 'full';
+                var contracts = getContracts();
+                var container = document.getElementById('forms-container');
 
-            if (contracts.length === 0) {
-                container.innerHTML = '<p style="text-align:center;padding:40px;font-size:16px;">印刷するデータがありません。先に契約情報を入力してください。</p>';
-                return;
-            }
+                if (contracts.length === 0) {
+                    container.innerHTML = '<p class="error-msg">印刷するデータがありません。<br>先に契約情報を入力してください。</p>';
+                    return;
+                }
 
-            // フルサイズの場合
-            if (isFull) {
-                // 1件1ページ
-                const style = document.querySelector('style');
-                document.querySelectorAll('.contract-form').forEach(el => el.remove());
-                container.innerHTML = contracts.map((c, i) => {
-                    let html = buildForm(c, true);
-                    if (i > 0) {
-                        html = html.replace('class="contract-form"', 'class="contract-form page-break"');
+                var htmlParts = [];
+                for (var i = 0; i < contracts.length; i++) {
+                    var formHtml = buildForm(contracts[i], isFull);
+                    // 改ページ挿入
+                    if (isFull && i > 0) {
+                        formHtml = formHtml.replace('class="contract-form"', 'class="contract-form page-break"');
+                    } else if (!isFull && i > 0 && i % 2 === 0) {
+                        formHtml = formHtml.replace('class="contract-form"', 'class="contract-form page-break"');
                     }
-                    return html;
-                }).join('');
-            } else {
-                // 半分サイズ: 2件/ページ
-                container.innerHTML = contracts.map((c, i) => {
-                    let html = buildForm(c, false);
-                    // 3件目以降の奇数番目（0-indexed で 2, 4, 6...）で改ページ
-                    if (i > 0 && i % 2 === 0) {
-                        html = html.replace('class="contract-form"', 'class="contract-form page-break"');
-                    }
-                    return html;
-                }).join('');
+                    htmlParts.push(formHtml);
+                }
+                container.innerHTML = htmlParts.join('');
+            } catch (e) {
+                document.getElementById('forms-container').innerHTML = '<p class="error-msg">エラーが発生しました: ' + e.message + '</p>';
             }
         }
 
